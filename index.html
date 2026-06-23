@@ -1,1 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart GST Invoice Calculator</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
 
+  <!-- Toast -->
+  <div id="toast" class="toast" role="alert" aria-live="assertive"></div>
+
+  <div class="page-wrapper">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo-box" aria-label="Smart GST Calculator Logo">
+          <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="2" width="28" height="36" rx="4" fill="white" fill-opacity="0.18"/>
+            <rect x="4" y="2" width="28" height="36" rx="4" stroke="white" stroke-width="2"/>
+            <line x1="10" y1="12" x2="26" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="10" y1="18" x2="26" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="10" y1="24" x2="18" y2="24" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="34" cy="34" r="6" fill="white" fill-opacity="0.3"/>
+            <line x1="31" y1="34" x2="37" y2="34" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <line x1="34" y1="31" x2="34" y2="37" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="header-title-block">
+          <h1 class="main-title">
+            <span class="title-gradient">Smart GST</span>
+            <span class="title-dark"> Invoice Calculator</span>
+          </h1>
+          <p class="subtitle">Calculate GST, Subtotal and Total Invoice Amount instantly</p>
+        </div>
+      </div>
+      <div class="profile-card" aria-label="Creator profile">
+        <div class="profile-avatar" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="12" r="7" fill="#395886" fill-opacity="0.7"/>
+            <path d="M4 28c0-6.627 5.373-10 12-10s12 3.373 12 10" stroke="#395886" stroke-width="2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <div class="profile-info">
+          <span class="profile-name">Arman Nayak</span>
+          <span class="profile-role">UI/UX Designer</span>
+        </div>
+        <div class="profile-badge">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" fill="#395886" fill-opacity="0.15"/><path d="M4 7l2 2 4-4" stroke="#395886" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-grid">
+
+      <!-- LEFT CARD: Calculator -->
+      <section class="card calc-card" aria-label="Invoice details form">
+        <div class="card-header">
+          <span class="card-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="2" width="18" height="18" rx="4" stroke="#395886" stroke-width="2"/><line x1="6" y1="7" x2="16" y2="7" stroke="#395886" stroke-width="1.5" stroke-linecap="round"/><line x1="6" y1="11" x2="16" y2="11" stroke="#395886" stroke-width="1.5" stroke-linecap="round"/><line x1="6" y1="15" x2="11" y2="15" stroke="#395886" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <h2 class="card-title">Enter Invoice Details</h2>
+        </div>
+
+        <div class="form-group">
+          <label for="productName">Product / Item Name</label>
+          <input type="text" id="productName" class="neu-input" placeholder="e.g. Wireless Headphone" autocomplete="off" aria-required="true" />
+        </div>
+
+        <div class="form-group">
+          <label for="pricePerUnit">Price per Unit (₹)</label>
+          <input type="number" id="pricePerUnit" class="neu-input" placeholder="e.g. 1000" min="0" step="any" autocomplete="off" aria-required="true" />
+        </div>
+
+        <div class="form-group">
+          <label for="quantity">Quantity</label>
+          <input type="number" id="quantity" class="neu-input" placeholder="e.g. 2" min="1" step="1" autocomplete="off" aria-required="true" />
+        </div>
+
+        <div class="form-group">
+          <label for="gstRate">GST Rate (%)</label>
+          <div class="gst-presets" role="group" aria-label="GST rate presets">
+            <button type="button" class="preset-btn" data-rate="0" aria-pressed="false">0%</button>
+            <button type="button" class="preset-btn" data-rate="12" aria-pressed="false">12%</button>
+            <button type="button" class="preset-btn" data-rate="15" aria-pressed="false">15%</button>
+            <button type="button" class="preset-btn" data-rate="18" aria-pressed="false">18%</button>
+            <button type="button" class="preset-btn" data-rate="28" aria-pressed="false">28%</button>
+          </div>
+          <input type="number" id="gstRate" class="neu-input" placeholder="e.g. 18" min="0" max="100" step="any" autocomplete="off" aria-required="true" />
+        </div>
+
+        <button type="button" id="calculateBtn" class="calc-btn" aria-label="Calculate Invoice">
+          <span class="calc-btn-text">Calculate Invoice</span>
+          <span class="calc-btn-shine" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <!-- RIGHT CARD: Invoice Summary -->
+      <section class="card summary-card" aria-label="Invoice summary">
+        <div class="card-header">
+          <span class="card-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 2h14l2 4-2 14H4L2 6l2-4z" stroke="#395886" stroke-width="2" stroke-linejoin="round"/><line x1="6" y1="9" x2="16" y2="9" stroke="#395886" stroke-width="1.5" stroke-linecap="round"/><line x1="6" y1="13" x2="13" y2="13" stroke="#395886" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <h2 class="card-title">Invoice Summary</h2>
+          <span class="calc-badge">
+            <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="rgba(12,213,1,0.7)"/></svg>
+            Calculations
+          </span>
+        </div>
+
+        <!-- Summary rows -->
+        <div class="summary-section">
+          <div class="summary-row">
+            <span class="sum-label">Subtotal <em>(Before GST)</em></span>
+            <span class="sum-value" id="subtotalDisplay">--</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-row">
+            <span class="sum-label">GST Amount</span>
+            <span class="sum-value gst-value" id="gstDisplay">--</span>
+          </div>
+        </div>
+
+        <!-- Total box -->
+        <div class="total-box" id="totalBox">
+          <span class="total-label">Total Invoice Amount</span>
+          <span class="total-value" id="totalDisplay">--</span>
+        </div>
+
+        <!-- Breakdown -->
+        <div class="breakdown-card">
+          <div class="breakdown-title">Invoice Breakdown</div>
+          <div class="breakdown-grid">
+            <div class="bd-item">
+              <span class="bd-label">Product Name</span>
+              <span class="bd-value" id="bdProduct">Not entered</span>
+            </div>
+            <div class="bd-item">
+              <span class="bd-label">Price per Unit</span>
+              <span class="bd-value" id="bdPrice">--</span>
+            </div>
+            <div class="bd-item">
+              <span class="bd-label">Quantity</span>
+              <span class="bd-value" id="bdQty">--</span>
+            </div>
+            <div class="bd-item">
+              <span class="bd-label">GST Rate</span>
+              <span class="bd-value" id="bdGst">--</span>
+            </div>
+            <div class="bd-item">
+              <span class="bd-label">Subtotal</span>
+              <span class="bd-value" id="bdSubtotal">--</span>
+            </div>
+            <div class="bd-item">
+              <span class="bd-label">GST Amount</span>
+              <span class="bd-value" id="bdGstAmt">--</span>
+            </div>
+            <div class="bd-item bd-total-row">
+              <span class="bd-label">Final Total</span>
+              <span class="bd-value" id="bdTotal">--</span>
+            </div>
+            <div class="bd-item">
+              <span class="bd-label">Date</span>
+              <span class="bd-value" id="bdDate">--</span>
+            </div>
+            <div class="bd-item">
+              <span class="bd-label">Time</span>
+              <span class="bd-value" id="bdTime">--</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <!-- DIGITAL HEROES CTA -->
+    <div class="cta-wrapper">
+      <a href="https://digitalheroesco.com/" target="_blank" rel="noopener noreferrer" class="dh-cta" aria-label="Built for Digital Heroes — visit digitalheroesco.com">
+        <span class="dh-cta-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3l2.5 5.5L19 9.5l-4 4 1 5.5L11 16l-5 3 1-5.5-4-4 5.5-1z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="rgba(255,255,255,0.15)"/></svg>
+        </span>
+        <span class="dh-cta-text">Built for Digital Heroes</span>
+        <span class="dh-cta-arrow" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="dh-shine" aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-divider"></div>
+      <div class="footer-content">
+        <span class="footer-text">Created by: <strong>Arman Nayak</strong></span>
+        <span class="footer-sep">·</span>
+        <a href="mailto:armanayak75@gmail.com" class="footer-email" aria-label="Email Arman Nayak">
+          <svg class="mail-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><rect x="1" y="3" width="13" height="9" rx="2" stroke="#395886" stroke-width="1.4"/><path d="M1 5l6.5 4.5L14 5" stroke="#395886" stroke-width="1.4" stroke-linecap="round"/></svg>
+          armanayak75@gmail.com
+        </a>
+      </div>
+    </footer>
+
+  </div><!-- end page-wrapper -->
+
+  <script src="script.js"></script>
+</body>
+</html>
