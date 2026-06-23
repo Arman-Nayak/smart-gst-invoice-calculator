@@ -1,279 +1,184 @@
-const form = document.getElementById("invoiceForm");
+/* =============================================
+   SMART GST INVOICE CALCULATOR — SCRIPT
+   ============================================= */
 
-const productNameInput = document.getElementById("productName");
-const priceInput = document.getElementById("price");
-const quantityInput = document.getElementById("quantity");
-const gstRateInput = document.getElementById("gstRate");
+(function () {
+  'use strict';
 
-const presetButtons = document.querySelectorAll(".preset-btn");
+  /* ── DOM References ── */
+  const productInput  = document.getElementById('productName');
+  const priceInput    = document.getElementById('pricePerUnit');
+  const qtyInput      = document.getElementById('quantity');
+  const gstInput      = document.getElementById('gstRate');
+  const calcBtn       = document.getElementById('calculateBtn');
+  const presetBtns    = document.querySelectorAll('.preset-btn');
 
-const subtotalValue = document.getElementById("subtotalValue");
-const gstValue = document.getElementById("gstValue");
-const totalValue = document.getElementById("totalValue");
+  // Summary display
+  const subtotalDisplay = document.getElementById('subtotalDisplay');
+  const gstDisplay      = document.getElementById('gstDisplay');
+  const totalDisplay    = document.getElementById('totalDisplay');
 
-const gstLabel = document.querySelector(".mini-summary .summary-line:nth-child(2) span");
+  // Breakdown display
+  const bdProduct  = document.getElementById('bdProduct');
+  const bdPrice    = document.getElementById('bdPrice');
+  const bdQty      = document.getElementById('bdQty');
+  const bdGst      = document.getElementById('bdGst');
+  const bdSubtotal = document.getElementById('bdSubtotal');
+  const bdGstAmt   = document.getElementById('bdGstAmt');
+  const bdTotal    = document.getElementById('bdTotal');
+  const bdDate     = document.getElementById('bdDate');
+  const bdTime     = document.getElementById('bdTime');
 
-const breakProduct = document.getElementById("breakProduct");
-const breakPrice = document.getElementById("breakPrice");
-const breakQuantity = document.getElementById("breakQuantity");
-const breakGst = document.getElementById("breakGst");
-const breakDate = document.getElementById("breakDate");
-const breakTime = document.getElementById("breakTime");
+  // Toast
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
 
-const toast = document.getElementById("toast");
+  /* ── Utility: Indian currency format ── */
+  function formatINR(amount) {
+    const formatted = amount.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return '₹\u00A0' + formatted;
+  }
 
-function formatCurrency(amount) {
-  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  /* ── Toast ── */
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+  }
 
-  return "₹ " + safeAmount.toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  /* ── Shake animation ── */
+  function shakeInput(el) {
+    el.classList.remove('shake');
+    // Force reflow to restart animation
+    void el.offsetWidth;
+    el.classList.add('shake');
+    el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
+  }
+
+  /* ── Pop animation for result values ── */
+  function popValue(el, value) {
+    el.classList.remove('value-pop');
+    void el.offsetWidth;
+    el.textContent = value;
+    el.classList.add('value-pop');
+  }
+
+  /* ── Preset GST buttons ── */
+  presetBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const rate = btn.getAttribute('data-rate');
+      gstInput.value = rate;
+      presetBtns.forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-pressed', 'true');
+      // Trigger real-time update
+      tryLiveUpdate();
+    });
   });
-}
 
-function showToast(message, type = "error") {
-  toast.textContent = message;
-  toast.style.background = type === "success" ? "#1E3A5F" : "#1E293B";
+  /* ── Sync presets when user manually types GST ── */
+  gstInput.addEventListener('input', () => {
+    const typed = parseFloat(gstInput.value);
+    presetBtns.forEach((btn) => {
+      const rate = parseFloat(btn.getAttribute('data-rate'));
+      const isMatch = !isNaN(typed) && typed === rate;
+      btn.classList.toggle('active', isMatch);
+      btn.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+    });
+    tryLiveUpdate();
+  });
 
-  toast.classList.add("show");
+  /* ── Real-time update on price / qty input ── */
+  priceInput.addEventListener('input', tryLiveUpdate);
+  qtyInput.addEventListener('input', tryLiveUpdate);
 
-  setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2800);
-}
+  function tryLiveUpdate() {
+    const price = parseFloat(priceInput.value);
+    const qty   = parseFloat(qtyInput.value);
+    const gst   = parseFloat(gstInput.value);
 
-function addInputError(input) {
-  input.style.boxShadow = `
-    0 0 0 2px rgba(239, 68, 68, 0.35),
-    18px 18px 30px rgba(13, 39, 80, 0.16),
-    -18px -18px 30px rgba(255, 255, 255, 1)
-  `;
-
-  input.animate(
-    [
-      { transform: "translateX(0)" },
-      { transform: "translateX(-6px)" },
-      { transform: "translateX(6px)" },
-      { transform: "translateX(0)" },
-    ],
-    {
-      duration: 260,
-      easing: "ease-in-out",
+    if (
+      !isNaN(price) && price > 0 &&
+      !isNaN(qty)   && qty > 0 &&
+      !isNaN(gst)   && gst >= 0
+    ) {
+      updateSummary(price, qty, gst, null, false);
     }
-  );
-}
-
-function clearInputError(input) {
-  input.style.boxShadow = "";
-}
-
-function getValues() {
-  const productName = productNameInput.value.trim();
-
-  const priceRaw = priceInput.value.trim();
-  const quantityRaw = quantityInput.value.trim();
-  const gstRaw = gstRateInput.value.trim();
-
-  const price = parseFloat(priceRaw);
-  const quantity = parseFloat(quantityRaw);
-  const gstRate = parseFloat(gstRaw);
-
-  return {
-    productName,
-    priceRaw,
-    quantityRaw,
-    gstRaw,
-    price,
-    quantity,
-    gstRate,
-  };
-}
-
-function resetSummary() {
-  subtotalValue.textContent = "--";
-  gstValue.textContent = "--";
-  totalValue.textContent = "--";
-
-  if (gstLabel) {
-    gstLabel.textContent = "GST";
   }
 
-  breakProduct.textContent = "Not entered";
-  breakPrice.textContent = "--";
-  breakQuantity.textContent = "--";
-  breakGst.textContent = "--";
-  breakDate.textContent = "--";
-  breakTime.textContent = "--";
-}
+  /* ── Calculate Button ── */
+  calcBtn.addEventListener('click', () => {
+    const productName = productInput.value.trim();
+    const price       = parseFloat(priceInput.value);
+    const qty         = parseFloat(qtyInput.value);
+    const gst         = parseFloat(gstInput.value);
 
-function calculateInvoice(showAnimation = true) {
-  const { productName, price, quantity, gstRate } = getValues();
-
-  const subtotal = price * quantity;
-  const gstAmount = subtotal * (gstRate / 100);
-  const total = subtotal + gstAmount;
-
-  const now = new Date();
-
-  subtotalValue.textContent = formatCurrency(subtotal);
-  gstValue.textContent = `(${formatCurrency(gstAmount)})`;
-  totalValue.textContent = formatCurrency(total);
-
-  if (gstLabel) {
-    gstLabel.textContent = `GST (${gstRate}%)`;
-  }
-
-  breakProduct.textContent = productName || "Not entered";
-  breakPrice.textContent = formatCurrency(price);
-  breakQuantity.textContent = quantity;
-  breakGst.textContent = `${gstRate}%`;
-
-  breakDate.textContent = now.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-
-  breakTime.textContent = now.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  if (showAnimation) {
-    animateResult(totalValue);
-  }
-}
-
-function animateResult(element) {
-  element.animate(
-    [
-      { transform: "scale(1)", opacity: 0.85 },
-      { transform: "scale(1.05)", opacity: 1 },
-      { transform: "scale(1)", opacity: 1 },
-    ],
-    {
-      duration: 320,
-      easing: "ease-out",
+    // Validation
+    if (!productName) {
+      showToast('Please enter a product name.');
+      shakeInput(productInput);
+      productInput.focus();
+      return;
     }
-  );
-}
-
-function canPreviewCalculate() {
-  const { priceRaw, quantityRaw, gstRaw, price, quantity, gstRate } = getValues();
-
-  return (
-    priceRaw !== "" &&
-    quantityRaw !== "" &&
-    gstRaw !== "" &&
-    Number.isFinite(price) &&
-    Number.isFinite(quantity) &&
-    Number.isFinite(gstRate) &&
-    price > 0 &&
-    quantity > 0 &&
-    gstRate >= 0
-  );
-}
-
-function validateForm() {
-  const { productName, priceRaw, quantityRaw, gstRaw, price, quantity, gstRate } = getValues();
-
-  clearInputError(productNameInput);
-  clearInputError(priceInput);
-  clearInputError(quantityInput);
-  clearInputError(gstRateInput);
-
-  if (!productName) {
-    addInputError(productNameInput);
-    productNameInput.focus();
-    showToast("Please enter a product name.");
-    return false;
-  }
-
-  if (priceRaw === "" || !Number.isFinite(price) || price <= 0) {
-    addInputError(priceInput);
-    priceInput.focus();
-    showToast("Please enter a valid price.");
-    return false;
-  }
-
-  if (quantityRaw === "" || !Number.isFinite(quantity) || quantity <= 0) {
-    addInputError(quantityInput);
-    quantityInput.focus();
-    showToast("Please enter a valid quantity.");
-    return false;
-  }
-
-  if (gstRaw === "" || !Number.isFinite(gstRate) || gstRate < 0) {
-    addInputError(gstRateInput);
-    gstRateInput.focus();
-    showToast("Please enter a valid GST rate.");
-    return false;
-  }
-
-  return true;
-}
-
-function updateActivePreset() {
-  const currentGst = parseFloat(gstRateInput.value);
-
-  presetButtons.forEach((button) => {
-    const buttonGst = parseFloat(button.dataset.gst);
-
-    if (Number.isFinite(currentGst) && currentGst === buttonGst) {
-      button.classList.add("active");
-    } else {
-      button.classList.remove("active");
+    if (!priceInput.value || isNaN(price) || price <= 0) {
+      showToast('Please enter a valid price.');
+      shakeInput(priceInput);
+      priceInput.focus();
+      return;
     }
+    if (!qtyInput.value || isNaN(qty) || qty <= 0) {
+      showToast('Please enter a valid quantity.');
+      shakeInput(qtyInput);
+      qtyInput.focus();
+      return;
+    }
+    if (!gstInput.value || isNaN(gst) || gst < 0) {
+      showToast('Please enter a valid GST rate.');
+      shakeInput(gstInput);
+      gstInput.focus();
+      return;
+    }
+
+    updateSummary(price, qty, gst, productName, true);
   });
-}
 
-function updatePreview() {
-  updateActivePreset();
+  /* ── Core: Update summary & breakdown ── */
+  function updateSummary(price, qty, gst, productName, withBreakdown) {
+    const subtotal  = price * qty;
+    const gstAmt    = subtotal * gst / 100;
+    const total     = subtotal + gstAmt;
 
-  if (canPreviewCalculate()) {
-    calculateInvoice(false);
-  } else {
-    resetSummary();
+    popValue(subtotalDisplay, formatINR(subtotal));
+    popValue(gstDisplay,      formatINR(gstAmt));
+    popValue(totalDisplay,    formatINR(total));
+
+    if (withBreakdown && productName !== null) {
+      const now = new Date();
+
+      const dateStr = now.toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
+      const timeStr = now.toLocaleTimeString('en-IN', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+      });
+
+      bdProduct.textContent  = productName || 'Not entered';
+      bdPrice.textContent    = formatINR(price);
+      bdQty.textContent      = qty % 1 === 0 ? qty.toFixed(0) : qty.toString();
+      bdGst.textContent      = gst + '%';
+      bdSubtotal.textContent = formatINR(subtotal);
+      bdGstAmt.textContent   = formatINR(gstAmt);
+      bdTotal.textContent    = formatINR(total);
+      bdDate.textContent     = dateStr;
+      bdTime.textContent     = timeStr;
+    }
   }
-}
 
-presetButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    gstRateInput.value = button.dataset.gst;
-
-    updatePreview();
-
-    button.animate(
-      [
-        { transform: "scale(1)" },
-        { transform: "scale(0.96)" },
-        { transform: "scale(1)" },
-      ],
-      {
-        duration: 180,
-        easing: "ease-out",
-      }
-    );
-  });
-});
-
-[productNameInput, priceInput, quantityInput, gstRateInput].forEach((input) => {
-  input.addEventListener("input", () => {
-    clearInputError(input);
-    updatePreview();
-  });
-});
-
-form.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  if (!validateForm()) {
-    return;
-  }
-
-  calculateInvoice(true);
-  showToast("Invoice calculated successfully.", "success");
-});
-
-resetSummary();
-updateActivePreset();
+})();
